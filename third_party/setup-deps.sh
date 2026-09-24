@@ -61,9 +61,14 @@ if [ ! -e "$PB_DIR/$LIBDIR/libprotobuf.$LIBEXT" ]; then
 fi
 
 # --- Eclipse Paho C ----------------------------------------------------------
-if [ ! -e "$PAHO/$LIBDIR/libpaho-mqtt3a.$LIBEXT" ]; then
+if [ ! -e "$PAHO/$LIBDIR/libpaho-mqtt3a.$LIBEXT" ] || \
+   [ ! -e "$PAHO/$LIBDIR/cmake/eclipse-paho-mqtt-c/eclipse-paho-mqtt-cConfig.cmake" ]; then
   echo "==> paho.mqtt.c $PAHO_C_VER"
   git clone --depth 1 -b "$PAHO_C_VER" https://github.com/eclipse-paho/paho.mqtt.c "$ROOT/paho.mqtt.c"
+  # v1.3.16 bug (also in master): MQTTAsync.c uses `DWORD rc` with
+  # Paho_thread_create_mutex(int*); GCC 14+ (MSYS2 MINGW64) errors on the
+  # incompatible pointer. int and DWORD are both 32-bit, so just retype it.
+  sed -i 's/DWORD rc = 0;/int rc = 0;/' "$ROOT/paho.mqtt.c/src/MQTTAsync.c"
   cmake -S "$ROOT/paho.mqtt.c" -B "$ROOT/paho-c-build" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PAHO" \
     -DCMAKE_INSTALL_LIBDIR="$LIBDIR" \
@@ -73,13 +78,16 @@ if [ ! -e "$PAHO/$LIBDIR/libpaho-mqtt3a.$LIBEXT" ]; then
 fi
 
 # --- Eclipse Paho C++ --------------------------------------------------------
-if [ ! -e "$PAHO/$LIBDIR/libpaho-mqttpp3.$LIBEXT" ]; then
+if [ ! -e "$PAHO/$LIBDIR/libpaho-mqttpp3.$LIBEXT" ] || \
+   [ ! -e "$PAHO/$LIBDIR/cmake/PahoMqttCpp/PahoMqttCppConfig.cmake" ]; then
   echo "==> paho.mqtt.cpp $PAHO_CPP_VER"
   git clone --depth 1 -b "$PAHO_CPP_VER" https://github.com/eclipse-paho/paho.mqtt.cpp "$ROOT/paho.mqtt.cpp"
   cmake -S "$ROOT/paho.mqtt.cpp" -B "$ROOT/paho-cpp-build" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PAHO" \
     -DCMAKE_INSTALL_LIBDIR="$LIBDIR" \
-    -DCMAKE_PREFIX_PATH="$PAHO" -DPAHO_WITH_SSL=OFF \
+    -DCMAKE_PREFIX_PATH="$PAHO" \
+    -Declipse-paho-mqtt-c_DIR="$PAHO/$LIBDIR/cmake/eclipse-paho-mqtt-c" \
+    -DPAHO_WITH_SSL=OFF \
     -DPAHO_BUILD_STATIC=ON -DPAHO_BUILD_SHARED="$PAHO_SHARED" \
     -DPAHO_BUILD_SAMPLES=OFF -DPAHO_BUILD_TESTS=OFF
   cmake --build "$ROOT/paho-cpp-build" --target install

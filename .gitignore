@@ -24,4 +24,24 @@ __pycache__/
 # CI / 打包产物
 .tools/
 dist/
+
+# 第三方依赖：全部由 third_party/setup-deps.sh 生成，不入库
+third_party/protobuf3196/
+third_party/protobuf-*/
+third_party/pb-build/
+third_party/pb-cpp.tar.gz
+third_party/paho/
+third_party/paho.mqtt.c/
+third_party/paho.mqtt.cpp/
+third_party/paho-c-build/
+third_party/paho-cpp-build/
+third_party/mosquitto/
+third_party/mosquitto-*/
+third_party/mosq-build/
+third_party/mosquitto.tar.gz
+third_party/nv-codec-headers/
+third_party/ffmpeg/
+third_party/ffmpeg-*/
+third_party/ffmpeg-deps/
+third_party/ffmpeg.tar.xz
 third_party/ffmpeg-cli/
