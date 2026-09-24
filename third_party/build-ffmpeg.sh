@@ -70,7 +70,14 @@ elif command -v dnf >/dev/null 2>&1; then
       break
     done
   done
-  HAVE_VA=1
+  # Only enable VAAPI if the runtime library actually landed; the client link
+  # keys on $DEPS/lib/libva.so, so a header-only tree would build vaapi code we
+  # cannot link.
+  if [ -e "$DEPS/lib/libva.so" ]; then
+    HAVE_VA=1
+  else
+    echo "!! libva runtime library missing from downloaded packages; disabling VAAPI"
+  fi
 elif command -v apt-get >/dev/null 2>&1; then
   echo "==> libva-dev / libdrm-dev headers via apt-get download"
   # -dev ships headers + a dangling `libva.so` symlink; the runtime packages hold
@@ -94,7 +101,14 @@ elif command -v apt-get >/dev/null 2>&1; then
       break
     done
   done
-  HAVE_VA=1
+  # Only enable VAAPI if the runtime library actually landed; the client link
+  # keys on $DEPS/lib/libva.so, so a header-only tree would build vaapi code we
+  # cannot link.
+  if [ -e "$DEPS/lib/libva.so" ]; then
+    HAVE_VA=1
+  else
+    echo "!! libva runtime library missing from downloaded packages; disabling VAAPI"
+  fi
 else
   echo "!! libva-dev not found; building FFmpeg without VAAPI (software + NVDEC only)"
 fi

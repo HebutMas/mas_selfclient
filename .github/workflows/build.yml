@@ -37,6 +37,7 @@ jobs:
             third_party/protobuf3196
             third_party/paho
             third_party/ffmpeg
+            third_party/ffmpeg-deps
             third_party/ffmpeg-cli
           key: deps-linux-${{ hashFiles('third_party/setup-deps.sh', 'third_party/build-ffmpeg.sh') }}
 
