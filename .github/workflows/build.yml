@@ -59,7 +59,7 @@ jobs:
       - name: Package AppImages
         run: |
           ./packaging/linux-appimage.sh client/build/rm_client packaging/rm_client.desktop rm_client
-          ./packaging/linux-appimage.sh simulator/build/rm_simulator packaging/rm_simulator.desktop rm_simulator --with-ffmpeg
+          ./packaging/linux-appimage.sh simulator/build/rm_simulator packaging/rm_simulator.desktop rm_simulator --with-ffmpeg --with-broker
 
       - uses: actions/upload-artifact@v4
         with:
@@ -151,6 +151,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           V="${{ steps.ver.outputs.version }}"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then ref="tags/$GITHUB_REF_NAME"; else ref="heads/$GITHUB_REF_NAME"; fi
+          msg=$(gh api "repos/$GITHUB_REPOSITORY/commits/$ref" --jq '.commit.message')
           mv dist/rm_client.AppImage      "dist/rm_client-$V-linux-x86_64.AppImage"
           mv dist/rm_simulator.AppImage   "dist/rm_simulator-$V-linux-x86_64.AppImage"
           mv dist/rm_client.zip           "dist/rm_client-$V-windows-x86_64.zip"
@@ -159,5 +161,5 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             ${{ steps.ver.outputs.target }} \
             --title "$V" \
-            --generate-notes
+            --notes "$msg"
 

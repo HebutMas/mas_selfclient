@@ -6,6 +6,8 @@
 
 #include <string>
 
+class QProcess;
+
 namespace rm {
 
 class MqttClient;
@@ -24,6 +26,7 @@ public:
   };
 
   explicit Simulator(Config cfg, QObject* parent = nullptr);
+  ~Simulator() override;
   void start();
 
   bool isConnected() const;
@@ -79,6 +82,8 @@ private slots:
 
 private:
   void publish(const QString& topic, const std::string& bytes);
+  // 独立发行版内置 mosquitto broker 时，在 loopback host 上拉起它。
+  void startBundledBroker();
   void publishGameStatus();
   void publishGlobalUnitStatus();
   void publishGlobalLogisticsStatus();
@@ -115,6 +120,8 @@ private:
   Config m_cfg;
   MqttClient* m_mqtt = nullptr;
   VideoSender* m_video = nullptr;
+  QProcess* m_broker = nullptr;   // 内置 broker（仅独立发行版）
+  QString m_brokerConf;           // 临时 mosquitto 配置路径
   QTimer m_timer;      // 20 Hz base tick
   int m_tick = 0;
   int m_elapsedSec = 0;

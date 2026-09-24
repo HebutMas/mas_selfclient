@@ -3,8 +3,16 @@
 #include "VideoSender.h"
 #include "robomaster.pb.h"
 
+#include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
+#include <QElapsedTimer>
+#include <QFile>
+#include <QFileInfo>
+#include <QProcess>
 #include <QStringList>
+#include <QTcpSocket>
+#include <QThread>
 
 namespace rm {
 
@@ -77,6 +85,34 @@ uint32_t maxHealthFor(uint32_t id) {
 
 QString prettyTopic(const QString& t) { return t; }
 
+// 独立发行版把 mosquitto 放在可执行文件同目录；开发构建没有，返回空。
+QString bundledMosquitto() {
+  const QString dir = QCoreApplication::applicationDirPath();
+  for (const QString& name : {QStringLiteral("mosquitto"), QStringLiteral("mosquitto.exe")}) {
+    const QString path = dir + QLatin1Char('/') + name;
+    if (QFileInfo::exists(path)) return path;
+  }
+  return QString();
+}
+
+bool isLoopbackHost(const QString& host) {
+  return host == QLatin1String("127.0.0.1") || host == QLatin1String("localhost") ||
+         host == QLatin1String("::1");
+}
+
+// 内置 broker 绑端口需要几毫秒，等它就绪再连，避免首次连接直接失败。
+bool waitForLoopbackPort(quint16 port, int timeoutMs) {
+  QElapsedTimer clock;
+  clock.start();
+  while (clock.elapsed() < timeoutMs) {
+    QTcpSocket probe;
+    probe.connectToHost(QStringLiteral("127.0.0.1"), port);
+    if (probe.waitForConnected(100)) return true;
+    QThread::msleep(50);
+  }
+  return false;
+}
+
 } // namespace
 
 Simulator::Simulator(Config cfg, QObject* parent)
@@ -124,6 +160,39 @@ Simulator::Simulator(Config cfg, QObject* parent)
   connect(m_video, &VideoSender::stopped, this, [this] { emit videoChanged(false); });
 }
 
+Simulator::~Simulator() {
+  if (m_broker) {
+    m_broker->terminate();
+    if (!m_broker->waitForFinished(1000)) m_broker->kill();
+  }
+  if (!m_brokerConf.isEmpty()) QFile::remove(m_brokerConf);
+}
+
+void Simulator::startBundledBroker() {
+  if (!isLoopbackHost(m_cfg.mqttHost)) return;
+  const QString prog = bundledMosquitto();
+  if (prog.isEmpty()) return;
+
+  m_brokerConf =
+      QDir::tempPath() +
+      QStringLiteral("/rm-mosquitto-%1.conf").arg(QCoreApplication::applicationPid());
+  QFile conf(m_brokerConf);
+  if (!conf.open(QIODevice::WriteOnly | QIODevice::Truncate)) return;
+  conf.write(QStringLiteral("listener %1 127.0.0.1\nallow_anonymous true\npersistence false\n")
+                 .arg(m_cfg.mqttPort)
+                 .toUtf8());
+  conf.close();
+
+  m_broker = new QProcess(this);
+  m_broker->setProcessChannelMode(QProcess::ForwardedChannels);
+  m_broker->start(prog, {QStringLiteral("-c"), m_brokerConf});
+  // 端口已被外部 broker 占用时，mosquitto 会自行退出，下面的等待仍会成功。
+  if (m_broker->waitForStarted(2000) && waitForLoopbackPort(m_cfg.mqttPort, 3000))
+    qInfo() << "[sim] 内置 MQTT broker 已就绪，端口" << m_cfg.mqttPort;
+  else
+    qWarning() << "[sim] 内置 MQTT broker 启动失败:" << prog;
+}
+
 bool Simulator::isConnected() const { return m_mqtt && m_mqtt->isConnected(); }
 
 int Simulator::maxHealth() const { return int(maxHealthFor(m_selfId)); }
@@ -142,6 +211,7 @@ int Simulator::stageDefaultCountdown(int stage) {
 }
 
 void Simulator::start() {
+  startBundledBroker();
   m_mqtt->connectToBroker(m_cfg.mqttHost, m_cfg.mqttPort, m_cfg.clientId);
   m_timer.setInterval(50); // 20 Hz base tick
   m_timer.setTimerType(Qt::PreciseTimer);
