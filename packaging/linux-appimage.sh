@@ -53,7 +53,7 @@ if [ "$WITH_FFMPEG" = "--with-ffmpeg" ]; then
   cp "$FF" "$WORK/AppDir/usr/bin/"
 fi
 
-"$TOOLS/linuxdeploy" --appdir "$WORK/AppDir" --output appimage
-
-mv "$WORK"/*.AppImage "$OUT/$NAME.AppImage"
+# OUTPUT tells linuxdeploy/appimagetool where to write the result (otherwise it
+# lands in the current directory under a name derived from the desktop Name=).
+OUTPUT="$OUT/$NAME.AppImage" "$TOOLS/linuxdeploy" --appdir "$WORK/AppDir" --output appimage
 echo "==> $OUT/$NAME.AppImage"
