@@ -53,6 +53,9 @@ elif command -v dnf >/dev/null 2>&1; then
   ( cd "$TMP" && for r in rpm/*x86_64.rpm; do rpm2cpio "$r" | cpio -idm --quiet; done )
   cp -r "$TMP/usr/include/va" "$DEPS/include/va"
   cp -r "$TMP/usr/include/libdrm" "$DEPS/include/libdrm"
+  # xf86drm*.h live at the include root (Fedora and Debian/Ubuntu alike), but
+  # ffmpeg's libdrm check does #include <xf86drm.h>; drop them beside the rest.
+  cp "$TMP/usr/include/"xf86drm*.h "$DEPS/include/libdrm/"
   for p in libva libva-drm libdrm; do
     sed -e "s|^prefix=.*|prefix=$DEPS|" -e "s|^libdir=.*|libdir=$DEPS/lib|" \
         "$TMP/usr/lib64/pkgconfig/$p.pc" > "$DEPS/lib/pkgconfig/$p.pc"
@@ -67,6 +70,9 @@ elif command -v apt-get >/dev/null 2>&1; then
   ( cd "$TMP" && for d in *.deb; do dpkg-deb -x "$d" .; done )
   cp -r "$TMP/usr/include/va" "$DEPS/include/va"
   cp -r "$TMP/usr/include/libdrm" "$DEPS/include/libdrm"
+  # xf86drm*.h live at the include root (Fedora and Debian/Ubuntu alike), but
+  # ffmpeg's libdrm check does #include <xf86drm.h>; drop them beside the rest.
+  cp "$TMP/usr/include/"xf86drm*.h "$DEPS/include/libdrm/"
   for p in libva libva-drm libdrm; do
     sed -e "s|^prefix=.*|prefix=$DEPS|" -e "s|^libdir=.*|libdir=$DEPS/lib|" \
         "$TMP/usr/lib/x86_64-linux-gnu/pkgconfig/$p.pc" > "$DEPS/lib/pkgconfig/$p.pc"
@@ -104,6 +110,7 @@ echo "==> configuring ffmpeg (soft + vaapi=$HAVE_VA + nvdec)"
     --enable-encoder=hevc_vaapi,h264_vaapi,hevc_nvenc,h264_nvenc \
     --enable-swscale --enable-protocol=file \
     --disable-x86asm \
+    --disable-iconv --disable-zlib \
     --enable-ffnvcodec --enable-nvdec --enable-nvenc \
     $VA_FLAGS )
 

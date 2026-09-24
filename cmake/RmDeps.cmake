@@ -73,8 +73,9 @@ function(rm_link_paho target)
     # Paho is static on Windows: Paho C++ headers otherwise expand to
     # __declspec(dllimport) (see the generated mqtt/export.h).
     target_compile_definitions(${target} PRIVATE PAHO_MQTTPP_STATIC_DEFINE)
-    # Static Paho C needs the Winsock stack at link time.
-    target_link_libraries(${target} PRIVATE ws2_32 iphlpapi)
+    # Static Paho C needs Winsock (ws2_32/iphlpapi), RPC (UuidCreate) and
+    # CryptoAPI (CryptStringToBinaryA) at link time.
+    target_link_libraries(${target} PRIVATE ws2_32 iphlpapi rpcrt4 crypt32)
   endif()
 endfunction()
 
@@ -97,6 +98,8 @@ function(rm_link_ffmpeg target)
     -Wl,--start-group "${RM_AVCODEC_LIB}" "${RM_SWSCALE_LIB}" "${RM_AVUTIL_LIB}" -Wl,--end-group)
   if(WIN32)
     # MinGW: NVDEC/NVENC dlopen their runtime libraries (no VAAPI on Windows).
+    # Static libavutil uses the Windows BCrypt RNG in av_random_bytes.
+    target_link_libraries(${target} PRIVATE bcrypt)
     return()
   endif()
   # VAAPI (AMD/Intel) links libva; NVDEC/NVENC dlopen their runtime libraries.
