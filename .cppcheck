@@ -1,0 +1,24 @@
+# cppcheck 抑制列表。用法（仓库根目录）：
+#   cppcheck --project=client/build/compile_commands.json \
+#            --enable=warning,style,performance,portability \
+#            --inline-suppr --suppressions-list=.cppcheck \
+#            -i third_party -i reference -i client/build -i simulator/build
+# 注意：需要先让 CMake 导出编译数据库（-DCMAKE_EXPORT_COMPILE_COMMANDS=ON，本项目默认开启）。
+
+# 依赖缺失类：不追头文件，避免第三方/系统头噪声
+missingInclude
+missingIncludeSystem
+
+# Qt 的 Q_OBJECT/moc 宏 cppcheck 无法解析，属已知误报
+unknownMacro
+constParameter
+unusedStructMember
+
+# 编译数据库会带入 third_party 头与 build/ 下的 moc 生成物，跳过
+syntaxError:third_party/*
+preprocessorErrorDirective:client/build/*
+preprocessorErrorDirective:simulator/build/*
+
+# 风格类噪声（本项目有意保留的写法）
+useStlAlgorithm
+variableScope

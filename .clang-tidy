@@ -1,0 +1,47 @@
+# clang-tidy 配置：面向 Qt6/C++17 项目的务实检查集。
+# 只检查项目自身代码（client/、simulator/、common/），跳过 protobuf 生成物与 third_party。
+# 用法：
+#   cmake -S client -B client/build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+#   clang-tidy -p client/build client/src/**/*.cpp
+Checks: >
+  bugprone-*,
+  clang-analyzer-*,
+  performance-*,
+  portability-*,
+  modernize-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -modernize-avoid-c-arrays,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-convert-member-functions-to-static,
+  -readability-braces-around-statements,
+  -readability-implicit-bool-conversion,
+  -readability-else-after-return,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-implicit-widening-of-multiplication-result
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*/(client|simulator|common)/.*'
+ExcludeHeaderFilterRegex: '.*\.pb\.h'
+
+CheckOptions:
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ConstantCase
+    value: camelBack
+  - key: readability-identifier-naming.ConstantPrefix
+    value: k
+  - key: modernize-loop-convert.MinConfidence
+    value: reasonable

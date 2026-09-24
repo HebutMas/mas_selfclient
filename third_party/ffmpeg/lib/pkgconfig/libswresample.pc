@@ -1,0 +1,14 @@
+prefix=/home/pan/workspace/selfcontrol/third_party/ffmpeg
+exec_prefix=${prefix}
+libdir=/home/pan/workspace/selfcontrol/third_party/ffmpeg/lib
+includedir=/home/pan/workspace/selfcontrol/third_party/ffmpeg/include
+
+Name: libswresample
+Description: FFmpeg audio resampling library
+Version: 6.3.102
+Requires: libavutil >= 60.26.102
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lswresample -lm -latomic
+Libs.private: 
+Cflags: -I${includedir}

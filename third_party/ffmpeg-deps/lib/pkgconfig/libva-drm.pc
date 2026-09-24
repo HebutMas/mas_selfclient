@@ -1,0 +1,14 @@
+prefix=/home/pan/workspace/selfcontrol/third_party/ffmpeg-deps
+includedir=${prefix}/include
+libdir=/home/pan/workspace/selfcontrol/third_party/ffmpeg-deps/lib
+
+libva_version=2.23.0
+va_api_version=1.23.0
+display=drm
+
+Name: va-drm
+Description: Userspace Video Acceleration (VA) DRM interface
+Version: 1.23.0
+Requires: libva
+Libs: -L${libdir} -lva-drm
+Cflags: -I${includedir}

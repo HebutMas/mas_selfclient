@@ -1,0 +1,40 @@
+# 项目代码风格：4 空格缩进、函数/结构体 Allman 花括号、控制语句 K&R、100 列。
+# 用法：clang-format -i $(git ls-files '*.h' '*.cpp')
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Never
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+NamespaceIndentation: None
+AccessModifierOffset: -4
+IndentCaseLabels: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+PointerAlignment: Left
+AlignTrailingComments: true
+AlignOperands: Align
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
+BreakTemplateDeclarations: Yes
+BreakConstructorInitializers: BeforeColon
+BinPackArguments: false
+BinPackParameters: false
