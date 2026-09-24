@@ -49,7 +49,9 @@ if pkg-config --exists libva libva-drm libdrm 2>/dev/null; then
   done
 elif command -v dnf >/dev/null 2>&1; then
   echo "==> libva-devel / libdrm-devel headers via dnf download"
-  ( cd "$TMP" && dnf download --destdir rpm libva-devel libdrm-devel >/dev/null 2>&1 )
+  # The -devel packages ship headers plus a dangling `libva.so -> libva.so.2`
+  # symlink; the real libraries live in the runtime packages, so fetch those too.
+  ( cd "$TMP" && dnf download --destdir rpm libva-devel libdrm-devel libva libdrm >/dev/null 2>&1 )
   ( cd "$TMP" && for r in rpm/*x86_64.rpm; do rpm2cpio "$r" | cpio -idm --quiet; done )
   cp -r "$TMP/usr/include/va" "$DEPS/include/va"
   cp -r "$TMP/usr/include/libdrm" "$DEPS/include/libdrm"
@@ -60,13 +62,20 @@ elif command -v dnf >/dev/null 2>&1; then
     sed -e "s|^prefix=.*|prefix=$DEPS|" -e "s|^libdir=.*|libdir=$DEPS/lib|" \
         "$TMP/usr/lib64/pkgconfig/$p.pc" > "$DEPS/lib/pkgconfig/$p.pc"
   done
-  for so in libva.so.2 libva-drm.so.2 libdrm.so.2; do
-    [ -e "/usr/lib64/$so" ] && ln -sf "/usr/lib64/$so" "$DEPS/lib/${so%%.so*}.so"
+  for lib in libva libva-drm libdrm; do
+    for d in "$TMP/usr/lib64" /usr/lib64; do
+      [ -e "$d/$lib.so.2" ] || continue
+      cp -fL "$d/$lib.so.2" "$DEPS/lib/$lib.so.2"
+      ln -sf "$lib.so.2" "$DEPS/lib/$lib.so"
+      break
+    done
   done
   HAVE_VA=1
 elif command -v apt-get >/dev/null 2>&1; then
   echo "==> libva-dev / libdrm-dev headers via apt-get download"
-  ( cd "$TMP" && apt-get download libva-dev libdrm-dev >/dev/null 2>&1 )
+  # -dev ships headers + a dangling `libva.so` symlink; the runtime packages hold
+  # the actual libraries (libva2/libva-drm2/libdrm2), which CI runners lack.
+  ( cd "$TMP" && apt-get download libva-dev libdrm-dev libva2 libva-drm2 libdrm2 >/dev/null 2>&1 )
   ( cd "$TMP" && for d in *.deb; do dpkg-deb -x "$d" .; done )
   cp -r "$TMP/usr/include/va" "$DEPS/include/va"
   cp -r "$TMP/usr/include/libdrm" "$DEPS/include/libdrm"
@@ -77,8 +86,13 @@ elif command -v apt-get >/dev/null 2>&1; then
     sed -e "s|^prefix=.*|prefix=$DEPS|" -e "s|^libdir=.*|libdir=$DEPS/lib|" \
         "$TMP/usr/lib/x86_64-linux-gnu/pkgconfig/$p.pc" > "$DEPS/lib/pkgconfig/$p.pc"
   done
-  for so in libva.so.2 libva-drm.so.2 libdrm.so.2; do
-    [ -e "/usr/lib/x86_64-linux-gnu/$so" ] && ln -sf "/usr/lib/x86_64-linux-gnu/$so" "$DEPS/lib/${so%%.so*}.so"
+  for lib in libva libva-drm libdrm; do
+    for d in "$TMP/usr/lib/x86_64-linux-gnu" /usr/lib/x86_64-linux-gnu; do
+      [ -e "$d/$lib.so.2" ] || continue
+      cp -fL "$d/$lib.so.2" "$DEPS/lib/$lib.so.2"
+      ln -sf "$lib.so.2" "$DEPS/lib/$lib.so"
+      break
+    done
   done
   HAVE_VA=1
 else
