@@ -20,3 +20,8 @@ __pycache__/
 
 # 日志 / 临时
 *.log
+
+# CI / 打包产物
+.tools/
+dist/
+third_party/ffmpeg-cli/

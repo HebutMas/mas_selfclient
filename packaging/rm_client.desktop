@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=RM Custom Client
+Comment=RoboMaster custom client
+Exec=rm_client
+Icon=rm_client
+Categories=Game;Network;
+Terminal=false

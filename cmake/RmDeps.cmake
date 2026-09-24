@@ -16,15 +16,25 @@ else()
 endif()
 
 set(RM_PROTO_DIR      "${_rm_repo_root}/proto")
-set(RM_PROTOC         "${DEPS_ROOT}/protobuf3196/bin/protoc")
+
+# Vendored libs install under lib64 on Linux (setup-deps.sh forces it) and lib
+# under MSYS2/MinGW. protoc gains a .exe suffix on Windows.
+if(WIN32)
+  set(_RM_LIBDIR "lib")
+  set(RM_PROTOC "${DEPS_ROOT}/protobuf3196/bin/protoc.exe")
+else()
+  set(_RM_LIBDIR "lib64")
+  set(RM_PROTOC "${DEPS_ROOT}/protobuf3196/bin/protoc")
+endif()
+
 set(RM_PROTOBUF_INC   "${DEPS_ROOT}/protobuf3196/include")
 
 find_library(RM_PROTOBUF_LIB NAMES protobuf
-  PATHS "${DEPS_ROOT}/protobuf3196/lib64" NO_DEFAULT_PATH)
+  PATHS "${DEPS_ROOT}/protobuf3196/${_RM_LIBDIR}" NO_DEFAULT_PATH)
 get_filename_component(RM_PROTOBUF_LIB_DIR "${RM_PROTOBUF_LIB}" DIRECTORY)
 
 set(RM_PAHO_INC       "${DEPS_ROOT}/paho/include")
-set(RM_PAHO_LIB_DIR   "${DEPS_ROOT}/paho/lib64")
+set(RM_PAHO_LIB_DIR   "${DEPS_ROOT}/paho/${_RM_LIBDIR}")
 find_library(RM_PAHO_CPP_LIB NAMES paho-mqttpp3
   PATHS "${RM_PAHO_LIB_DIR}" NO_DEFAULT_PATH)
 find_library(RM_PAHO_C_LIB NAMES paho-mqtt3a
@@ -57,6 +67,10 @@ endfunction()
 function(rm_link_paho target)
   target_include_directories(${target} PRIVATE "${RM_PAHO_INC}")
   target_link_libraries(${target} PRIVATE "${RM_PAHO_CPP_LIB}" "${RM_PAHO_C_LIB}")
+  if(WIN32)
+    # Static Paho C needs the Winsock stack at link time.
+    target_link_libraries(${target} PRIVATE ws2_32 iphlpapi)
+  endif()
 endfunction()
 
 # Link the slim static FFmpeg (see third_party/build-ffmpeg.sh) against a target.
@@ -76,6 +90,10 @@ function(rm_link_ffmpeg target)
   # Static archives: wrap in a group so inter-library references resolve.
   target_link_libraries(${target} PRIVATE
     -Wl,--start-group "${RM_AVCODEC_LIB}" "${RM_SWSCALE_LIB}" "${RM_AVUTIL_LIB}" -Wl,--end-group)
+  if(WIN32)
+    # MinGW: NVDEC/NVENC dlopen their runtime libraries (no VAAPI on Windows).
+    return()
+  endif()
   # VAAPI (AMD/Intel) links libva; NVDEC/NVENC dlopen their runtime libraries.
   set(_va_dir "${DEPS_ROOT}/ffmpeg-deps/lib")
   if(EXISTS "${_va_dir}/libva.so")

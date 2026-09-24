@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=RM Simulator
+Comment=RoboMaster referee system simulator
+Exec=rm_simulator
+Icon=rm_simulator
+Categories=Development;Network;
+Terminal=false

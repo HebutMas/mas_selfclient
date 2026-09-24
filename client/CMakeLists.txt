@@ -44,8 +44,10 @@ rm_link_paho(rm_client)
 rm_link_ffmpeg(rm_client)
 target_link_libraries(rm_client PRIVATE Qt6::Widgets Qt6::Network)
 
-set_target_properties(rm_client PROPERTIES
-  BUILD_RPATH "${RM_PAHO_LIB_DIR};${RM_PROTOBUF_LIB_DIR}")
+if(UNIX)
+  set_target_properties(rm_client PROPERTIES
+    BUILD_RPATH "${RM_PAHO_LIB_DIR};${RM_PROTOBUF_LIB_DIR}")
+endif()
 
 option(RM_BUILD_TESTS "Build unit tests" ON)
 if(RM_BUILD_TESTS)
@@ -65,7 +67,9 @@ if(RM_BUILD_TESTS)
   target_include_directories(test_user_actions PRIVATE src)
   rm_add_proto(test_user_actions)
   target_link_libraries(test_user_actions PRIVATE Qt6::Gui Qt6::Test)
-  set_target_properties(test_user_actions PROPERTIES BUILD_RPATH "${RM_PROTOBUF_LIB_DIR}")
+  if(UNIX)
+    set_target_properties(test_user_actions PROPERTIES BUILD_RPATH "${RM_PROTOBUF_LIB_DIR}")
+  endif()
   add_test(NAME user_actions COMMAND test_user_actions)
   set_tests_properties(user_actions PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

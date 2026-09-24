@@ -29,18 +29,24 @@ if [ -e "$FF_PREFIX/lib/libavcodec.a" ]; then
 fi
 
 # --- NVDEC/NVENC headers (header-only, dynamically linked at runtime) --------
-if [ ! -e "$DEPS/lib/pkgconfig/ffnvcodec.pc" ]; then
-  echo "==> nv-codec-headers (NVDEC/NVENC)"
-  [ -d "$ROOT/nv-codec-headers/.git" ] || \
-    git clone --depth 1 https://github.com/FFmpeg/nv-codec-headers.git "$ROOT/nv-codec-headers"
-  make -C "$ROOT/nv-codec-headers" install PREFIX="$DEPS" >/dev/null
-fi
+# Always (re)install: ffnvcodec.pc embeds an absolute prefix from whoever
+# generated it, so a fresh clone (CI) must regenerate it for this machine.
+echo "==> nv-codec-headers (NVDEC/NVENC)"
+[ -d "$ROOT/nv-codec-headers/.git" ] || \
+  git clone --depth 1 https://github.com/FFmpeg/nv-codec-headers.git "$ROOT/nv-codec-headers"
+make -C "$ROOT/nv-codec-headers" install PREFIX="$DEPS" >/dev/null
 
 # --- VAAPI headers (libva + libdrm) ------------------------------------------
 HAVE_VA=0
 mkdir -p "$DEPS/include" "$DEPS/lib/pkgconfig"
 if pkg-config --exists libva libva-drm libdrm 2>/dev/null; then
   HAVE_VA=1                                   # system -devel already installed
+  # Refresh the .pc files: the committed ones may carry another machine's
+  # absolute prefix, which would break configure on a fresh clone (CI).
+  for p in libva libva-drm libdrm; do
+    src="$(pkg-config --variable=pcfiledir "$p" 2>/dev/null)/$p.pc"
+    [ -f "$src" ] && cp "$src" "$DEPS/lib/pkgconfig/$p.pc"
+  done
 elif command -v dnf >/dev/null 2>&1; then
   echo "==> libva-devel / libdrm-devel headers via dnf download"
   ( cd "$TMP" && dnf download --destdir rpm libva-devel libdrm-devel >/dev/null 2>&1 )

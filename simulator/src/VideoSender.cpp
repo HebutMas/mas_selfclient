@@ -1,5 +1,7 @@
 #include "VideoSender.h"
 
+#include <QCoreApplication>
+#include <QFileInfo>
 #include <QHostAddress>
 #include <QProcess>
 #include <QUdpSocket>
@@ -13,6 +15,17 @@ namespace rm {
 namespace {
 // 单个 UDP 载荷上限，避免 IP 分片。
 constexpr int kMtu = 1400;
+
+// 优先使用随包附带的 ffmpeg（独立发行版），否则回退到 PATH。
+QString ffmpegProgram() {
+  const QString dir = QCoreApplication::applicationDirPath();
+  for (const QString& name : {QStringLiteral("ffmpeg"), QStringLiteral("ffmpeg.exe")}) {
+    const QString path = dir + QLatin1Char('/') + name;
+    if (QFileInfo::exists(path))
+      return path;
+  }
+  return QStringLiteral("ffmpeg");
+}
 } // namespace
 
 VideoSender::VideoSender(QObject* parent) : QObject(parent) {
@@ -63,7 +76,7 @@ bool VideoSender::start(const QString& file, const QString& host, quint16 port) 
       QStringLiteral("-f"), QStringLiteral("hevc"),
       QStringLiteral("-"),
   };
-  m_proc->start(QStringLiteral("ffmpeg"), args);
+  m_proc->start(ffmpegProgram(), args);
   if (!m_proc->waitForStarted(3000)) {
     emit errorOccurred(tr("无法启动 ffmpeg（请确认已安装）"));
     stop();

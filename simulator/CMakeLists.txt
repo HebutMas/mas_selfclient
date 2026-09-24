@@ -33,5 +33,7 @@ rm_link_paho(rm_simulator)
 rm_link_ffmpeg(rm_simulator)
 target_link_libraries(rm_simulator PRIVATE Qt6::Core Qt6::Widgets Qt6::Network)
 
-set_target_properties(rm_simulator PROPERTIES
-  BUILD_RPATH "${RM_PAHO_LIB_DIR};${RM_PROTOBUF_LIB_DIR}")
+if(UNIX)
+  set_target_properties(rm_simulator PROPERTIES
+    BUILD_RPATH "${RM_PAHO_LIB_DIR};${RM_PROTOBUF_LIB_DIR}")
+endif()
