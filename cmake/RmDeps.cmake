@@ -35,9 +35,11 @@ get_filename_component(RM_PROTOBUF_LIB_DIR "${RM_PROTOBUF_LIB}" DIRECTORY)
 
 set(RM_PAHO_INC       "${DEPS_ROOT}/paho/include")
 set(RM_PAHO_LIB_DIR   "${DEPS_ROOT}/paho/${_RM_LIBDIR}")
-find_library(RM_PAHO_CPP_LIB NAMES paho-mqttpp3
+# Upstream keeps the "-static" suffix on Windows (it only strips it on *nix),
+# so accept both archive names.
+find_library(RM_PAHO_CPP_LIB NAMES paho-mqttpp3 paho-mqttpp3-static
   PATHS "${RM_PAHO_LIB_DIR}" NO_DEFAULT_PATH)
-find_library(RM_PAHO_C_LIB NAMES paho-mqtt3a
+find_library(RM_PAHO_C_LIB NAMES paho-mqtt3a paho-mqtt3a-static
   PATHS "${RM_PAHO_LIB_DIR}" NO_DEFAULT_PATH)
 
 foreach(_v RM_PROTOBUF_LIB RM_PAHO_CPP_LIB RM_PAHO_C_LIB)
@@ -68,6 +70,9 @@ function(rm_link_paho target)
   target_include_directories(${target} PRIVATE "${RM_PAHO_INC}")
   target_link_libraries(${target} PRIVATE "${RM_PAHO_CPP_LIB}" "${RM_PAHO_C_LIB}")
   if(WIN32)
+    # Paho is static on Windows: Paho C++ headers otherwise expand to
+    # __declspec(dllimport) (see the generated mqtt/export.h).
+    target_compile_definitions(${target} PRIVATE PAHO_MQTTPP_STATIC_DEFINE)
     # Static Paho C needs the Winsock stack at link time.
     target_link_libraries(${target} PRIVATE ws2_32 iphlpapi)
   endif()

@@ -34,6 +34,13 @@ if [ "$IS_WINDOWS" = 1 ]; then
 else
   PB_SHARED=ON;  PAHO_SHARED=ON;  LIBEXT=so
 fi
+# Upstream only strips the "-static" suffix from the archive name on *nix, so
+# on Windows the static libs are libpaho-mqtt3a-static.a / libpaho-mqttpp3-static.a.
+if [ "$IS_WINDOWS" = 1 ]; then
+  PAHO_C_LIBBASE=paho-mqtt3a-static; PAHO_CPP_LIBBASE=paho-mqttpp3-static
+else
+  PAHO_C_LIBBASE=paho-mqtt3a;       PAHO_CPP_LIBBASE=paho-mqttpp3
+fi
 
 PB_DIR="$ROOT/protobuf3196"
 SRC_DIR="$ROOT/protobuf-$PROTOC_VER"
@@ -61,7 +68,7 @@ if [ ! -e "$PB_DIR/$LIBDIR/libprotobuf.$LIBEXT" ]; then
 fi
 
 # --- Eclipse Paho C ----------------------------------------------------------
-if [ ! -e "$PAHO/$LIBDIR/libpaho-mqtt3a.$LIBEXT" ] || \
+if [ ! -e "$PAHO/$LIBDIR/lib$PAHO_C_LIBBASE.$LIBEXT" ] || \
    [ ! -e "$PAHO/$LIBDIR/cmake/eclipse-paho-mqtt-c/eclipse-paho-mqtt-cConfig.cmake" ]; then
   echo "==> paho.mqtt.c $PAHO_C_VER"
   git clone --depth 1 -b "$PAHO_C_VER" https://github.com/eclipse-paho/paho.mqtt.c "$ROOT/paho.mqtt.c"
@@ -78,7 +85,7 @@ if [ ! -e "$PAHO/$LIBDIR/libpaho-mqtt3a.$LIBEXT" ] || \
 fi
 
 # --- Eclipse Paho C++ --------------------------------------------------------
-if [ ! -e "$PAHO/$LIBDIR/libpaho-mqttpp3.$LIBEXT" ] || \
+if [ ! -e "$PAHO/$LIBDIR/lib$PAHO_CPP_LIBBASE.$LIBEXT" ] || \
    [ ! -e "$PAHO/$LIBDIR/cmake/PahoMqttCpp/PahoMqttCppConfig.cmake" ]; then
   echo "==> paho.mqtt.cpp $PAHO_CPP_VER"
   git clone --depth 1 -b "$PAHO_CPP_VER" https://github.com/eclipse-paho/paho.mqtt.cpp "$ROOT/paho.mqtt.cpp"
@@ -94,7 +101,8 @@ if [ ! -e "$PAHO/$LIBDIR/libpaho-mqttpp3.$LIBEXT" ] || \
 fi
 
 # --- Eclipse Mosquitto broker (local test broker; Linux only) ----------------
-# Broker only: apps/clients/plugins/TLS/cJSON off, so the binary needs only libc.
+# Broker only: apps/clients/plugins/TLS/cJSON/docs off, so the binary needs only libc.
+# (DOCUMENTATION=OFF avoids the hard xsltproc requirement in man/CMakeLists.txt.)
 if [ "$IS_WINDOWS" = 0 ] && [ ! -x "$MOSQ/sbin/mosquitto" ]; then
   echo "==> mosquitto $MOSQ_VER"
   if [ ! -d "$ROOT/mosquitto-$MOSQ_VER" ]; then
@@ -107,7 +115,8 @@ if [ "$IS_WINDOWS" = 0 ] && [ ! -x "$MOSQ/sbin/mosquitto" ]; then
     -DCMAKE_INSTALL_LIBDIR="$LIBDIR" \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     -DWITH_BROKER=ON -DWITH_CLIENTS=OFF -DWITH_APPS=OFF -DWITH_PLUGINS=OFF \
-    -DWITH_TLS=OFF -DWITH_CJSON=OFF -DWITH_SYSTEMD=OFF -DWITH_SOCKS=OFF
+    -DWITH_TLS=OFF -DWITH_CJSON=OFF -DWITH_SYSTEMD=OFF -DWITH_SOCKS=OFF \
+    -DDOCUMENTATION=OFF
   cmake --build "$ROOT/mosq-build" --target install
 fi
 
