@@ -32,12 +32,17 @@ fetch "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/co
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+# linuxdeploy matches the desktop file's Icon= entry against the icon file's
+# basename, so deploy the shared icon under the app's own name.
+ICON="$WORK/$NAME.png"
+cp "$ROOT/packaging/icon.png" "$ICON"
+
 # Bundle the app (and its Qt deps) into the AppDir first.
 "$TOOLS/linuxdeploy" \
   --appdir "$WORK/AppDir" \
   --executable "$ROOT/$EXE" \
   --desktop-file "$ROOT/$DESKTOP" \
-  --icon-file "$ROOT/packaging/icon.png" \
+  --icon-file "$ICON" \
   --plugin qt
 
 # Optional: bundled static ffmpeg CLI for the simulator's video import.
