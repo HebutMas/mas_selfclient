@@ -9,8 +9,12 @@ Unicode true
 SetCompressor /SOLID lzma
 RequestExecutionLevel admin
 
-!define APP_VERSION "0.0.0"
-!define APP_PUBLISHER "HebutMas"
+!ifndef APP_VERSION          ; bundle-windows.sh passes -DAPP_VERSION
+  !define APP_VERSION "0.0.0"
+!endif
+!ifndef APP_PUBLISHER
+  !define APP_PUBLISHER "HebutMas"
+!endif
 
 Name "${APP_NAME}"
 OutFile "${OUTFILE}"
