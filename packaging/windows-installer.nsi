@@ -7,7 +7,6 @@
 
 Unicode true
 SetCompressor /SOLID lzma
-SetRegView 64             ; $PROGRAMFILES64 + the Uninstall key below are 64-bit
 RequestExecutionLevel admin
 
 !define APP_VERSION "0.0.0"
@@ -29,6 +28,7 @@ InstallDirRegKey HKLM "Software\${APP_NAME}" "InstallDir"
 !define UNKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 
 Section
+  SetRegView 64             ; $PROGRAMFILES64 + the Uninstall key below are 64-bit
   SetOutPath "$INSTDIR"
   File /r "${SRCDIR}\*.*"
   WriteUninstaller "$INSTDIR\uninstall.exe"
@@ -49,6 +49,7 @@ Section
 SectionEnd
 
 Section "Uninstall"
+  SetRegView 64
   Delete "$DESKTOP\${APP_NAME}.lnk"
   RMDir /r "$SMPROGRAMS\${APP_NAME}"
   RMDir /r "$INSTDIR"
