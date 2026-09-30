@@ -1,23 +1,23 @@
 # Shared third-party dependency resolution for the RoboMaster custom client
 # and the protocol simulator.
 #
-# Deps live in <repo>/third_party (see third_party/setup-deps.sh):
+# Deps live in <repo>/deps (see scripts/deps.sh):
 #   protobuf3196/                      built from source: bin/protoc, include/, lib64/
 #   paho/                              Eclipse Paho C + C++ (built from source)
 #
-# No system libraries are required: everything is vendored under third_party/.
+# No system libraries are required: everything is vendored under deps/.
 # Override DEPS_ROOT to point elsewhere.
 
 if(NOT DEFINED DEPS_ROOT)
   get_filename_component(_rm_repo_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
-  set(DEPS_ROOT "${_rm_repo_root}/third_party")
+  set(DEPS_ROOT "${_rm_repo_root}/deps")
 else()
   get_filename_component(_rm_repo_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 endif()
 
 set(RM_PROTO_DIR      "${_rm_repo_root}/proto")
 
-# Vendored libs install under lib64 on Linux (setup-deps.sh forces it) and lib
+# Vendored libs install under lib64 on Linux (scripts/deps.sh forces it) and lib
 # under MSYS2/MinGW. protoc gains a .exe suffix on Windows.
 if(WIN32)
   set(_RM_LIBDIR "lib")
@@ -44,7 +44,7 @@ find_library(RM_PAHO_C_LIB NAMES paho-mqtt3a paho-mqtt3a-static
 
 foreach(_v RM_PROTOBUF_LIB RM_PAHO_CPP_LIB RM_PAHO_C_LIB)
   if(NOT ${_v})
-    message(FATAL_ERROR "RM deps not found (${_v}). Run third_party/setup-deps.sh first, "
+    message(FATAL_ERROR "RM deps not found (${_v}). Run scripts/deps.sh first, "
                         "or set DEPS_ROOT.")
   endif()
 endforeach()
@@ -79,7 +79,7 @@ function(rm_link_paho target)
   endif()
 endfunction()
 
-# Link the slim static FFmpeg (see third_party/build-ffmpeg.sh) against a target.
+# Link the slim static FFmpeg (see scripts/deps.sh) against a target.
 # Software HEVC/H.264 decode + VAAPI (AMD/Intel) + NVDEC/NVENC (NVIDIA).
 set(RM_FFMPEG_DIR "${DEPS_ROOT}/ffmpeg")
 find_library(RM_AVCODEC_LIB NAMES avcodec PATHS "${RM_FFMPEG_DIR}/lib" NO_DEFAULT_PATH)
@@ -89,7 +89,7 @@ find_library(RM_SWSCALE_LIB NAMES swscale PATHS "${RM_FFMPEG_DIR}/lib" NO_DEFAUL
 function(rm_link_ffmpeg target)
   foreach(_v RM_AVCODEC_LIB RM_AVUTIL_LIB RM_SWSCALE_LIB)
     if(NOT ${_v})
-      message(FATAL_ERROR "FFmpeg not found (${_v}). Run third_party/setup-deps.sh first.")
+      message(FATAL_ERROR "FFmpeg not found (${_v}). Run scripts/deps.sh first.")
     endif()
   endforeach()
   target_include_directories(${target} PRIVATE "${RM_FFMPEG_DIR}/include")

@@ -1,5 +1,5 @@
 # clang-tidy 配置：面向 Qt6/C++17 项目的务实检查集。
-# 只检查项目自身代码（client/、simulator/、common/），跳过 protobuf 生成物与 third_party。
+# 只检查项目自身代码（client/、simulator/、common/），跳过 protobuf 生成物与 deps。
 # 用法：
 #   cmake -S client -B client/build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 #   clang-tidy -p client/build client/src/**/*.cpp

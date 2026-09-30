@@ -3,12 +3,12 @@
 RoboMaster 自定义客户端 + 裁判系统模拟器。
 
 ```
-proto/  cmake/RmDeps.cmake  common/MqttClient  client/(→rm_client)  simulator/(→rm_simulator)  third_party/ 
+proto/  cmake/RmDeps.cmake  common/MqttClient  client/(→rm_client)  simulator/(→rm_simulator)  deps/ 
 ```
 
 ## 准备与构建
 
-- 依赖随项目携带。**首次必须先跑** `./third_party/setup-deps.sh`（源码构建 protobuf 3.19.6 + Paho + Mosquitto 到 `third_party/`；不链接系统库，本地联调不需要 Python）。缺依赖时 CMake 直接 FATAL_ERROR。
+- 依赖随项目携带。**首次必须先跑** `./scripts/deps.sh`（默认从 `deps.lock` 锁定的预编译包解压到 `deps/`；没发包或取不到就自动用 `./scripts/deps.sh --pack` 按同一份锁源码构建）。缺依赖时 CMake 直接 FATAL_ERROR。
 - Qt 需本地安装，CMake 自动探测 `~/Qt/6.11.2/gcc_64`。
 - ```bash
   cmake -S client    -B client/build    -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build client/build
@@ -25,7 +25,7 @@ proto/  cmake/RmDeps.cmake  common/MqttClient  client/(→rm_client)  simulator/
 
 ## 架构不变量（改代码前必读）
 
-- `proto/robomaster.proto` 是 client 与 simulator 的**唯一公用协议**；改动后两边 build 都会用 `third_party/protobuf3196/bin/protoc` 重新生成。**topic 名 = 消息名**。
+- `proto/robomaster.proto` 是 client 与 simulator 的**唯一公用协议**；改动后两边 build 都会用 `deps/protobuf3196/bin/protoc` 重新生成。**topic 名 = 消息名**。
 - 分层：`core/`（纯数据/逻辑，不依赖 UI）← `net/`（GameData 解析，依赖 core）← `ui/`。**`net` 不得 include `ui`**。HUD 视图模型在 `core/HudData.h`。
 - 兵种功能模块化：每兵种一个 `core/robots/<Robot>Actions.cpp`；增删兵种功能 = 加/删文件 + 在 `core/UserActions.cpp` 的 `makeActions()` 注册一行。
 - `common/MqttClient` 由 client 与 simulator 共用（Paho 封装，QMetaObject 跨线程回 Qt 线程）。
@@ -40,4 +40,4 @@ proto/  cmake/RmDeps.cmake  common/MqttClient  client/(→rm_client)  simulator/
 
 ## 静态检查
 
-见 README「代码规范与静态检查」。关键：**cppcheck 2.22 不会自动加载 `.cppcheck`，必须显式 `--suppressions-list=.cppcheck`**，且抑制项路径写相对仓库根（如 `third_party/*`，`*/third_party/*` 不匹配）。
+见 README「代码规范与静态检查」。关键：**cppcheck 2.22 不会自动加载 `.cppcheck`，必须显式 `--suppressions-list=.cppcheck`**，且抑制项路径写相对仓库根（如 `deps/*`，`*/deps/*` 不匹配）。

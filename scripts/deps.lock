@@ -1,0 +1,28 @@
+# 依赖版本的唯一真相源。scripts/deps.sh 会 source 它。
+# 改版本 -> 改这里 -> 重跑 .github/workflows/deps.yml 重新发布预编译包，
+# 再把 DEPS_BUNDLE_TAG 和两个 sha256 填回来。
+
+# --- 预编译依赖包（快路径：一次下载，无需工具链/多主机） ---------------------
+# 存包的 Release tag（在 DEPS_REPO 里）。留空 = 还没发布 -> 自动退回源码构建。
+DEPS_REPO="HebutMas/mas_selfclient"
+DEPS_BUNDLE_TAG=""
+DEPS_BUNDLE_SHA256_LINUX=""
+DEPS_BUNDLE_SHA256_WINDOWS=""
+
+# --- 源码版本（deps.sh --pack 源码构建用） -----------------------------------
+PROTOC_VER=3.19.6
+PAHO_C_VER=v1.3.16
+PAHO_CPP_VER=v1.6.0
+MOSQ_VER=2.0.20
+FFMPEG_VER=8.1.2
+# 固定 tag（原来是浮动的默认分支）。n13.x 对应 NVENCAPI_MAJOR_VERSION 13，
+# 即当前 ffmpeg 8.1.2 验证过的 ffnvcodec 线。
+NVCODEC_TAG=n13.1.15.0
+
+# --- 静态 ffmpeg CLI（模拟器导视频用；BtbN GPL 构建） ------------------------
+# 固定 release tag（原来是滚动的 `latest`，内容会变）。BtbN 的资产名带
+# git-describe，所以每版不同；sha256 不写死，构建时从同一个 release 的
+# checksums.sha256 里取（见 scripts/deps.sh）。
+FFCLI_RELEASE=autobuild-2026-09-29-13-10
+FFCLI_ASSET_LINUX=ffmpeg-n8.1.3-6-gff48edd8b2-linux64-gpl-8.1.tar.xz
+FFCLI_ASSET_WINDOWS=ffmpeg-n8.1.3-6-gff48edd8b2-win64-gpl-8.1.zip

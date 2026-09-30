@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Builds a self-contained AppImage for one rm binary using linuxdeploy + its Qt
-# plugin. Requires Qt (qmake) on PATH (CI provides it via install-qt-action).
-#
 # Usage: packaging/linux-appimage.sh <exe-path> <desktop-file> <output-name> [--with-ffmpeg] [--with-broker]
 set -euo pipefail
 
@@ -64,16 +61,16 @@ export EXTRA_QT_MODULES="waylandcompositor"
 # Optional: bundled static ffmpeg CLI for the simulator's video import.
 # Copied after linuxdeploy so patchelf never touches the static binary.
 if [ -n "$WITH_FFMPEG" ]; then
-  FF="$ROOT/third_party/ffmpeg-cli/bin/ffmpeg"
-  [ -x "$FF" ] || { echo "missing $FF (run third_party/setup-deps.sh)" >&2; exit 1; }
+  FF="$ROOT/deps/ffmpeg-cli/bin/ffmpeg"
+  [ -x "$FF" ] || { echo "missing $FF (run scripts/deps.sh)" >&2; exit 1; }
   cp "$FF" "$WORK/AppDir/usr/bin/"
 fi
 
 # Optional: bundle the mosquitto broker so the simulator is self-contained
 # (it starts it on loopback at launch). Copied after linuxdeploy, like ffmpeg.
 if [ -n "$WITH_BROKER" ]; then
-  MOSQ="$ROOT/third_party/mosquitto/sbin/mosquitto"
-  [ -x "$MOSQ" ] || { echo "missing $MOSQ (run third_party/setup-deps.sh)" >&2; exit 1; }
+  MOSQ="$ROOT/deps/mosquitto/sbin/mosquitto"
+  [ -x "$MOSQ" ] || { echo "missing $MOSQ (run scripts/deps.sh)" >&2; exit 1; }
   cp "$MOSQ" "$WORK/AppDir/usr/bin/"
   chmod +x "$WORK/AppDir/usr/bin/mosquitto"
 fi

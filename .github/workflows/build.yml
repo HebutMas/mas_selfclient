@@ -34,15 +34,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            third_party/protobuf3196
-            third_party/paho
-            third_party/ffmpeg
-            third_party/ffmpeg-deps
-            third_party/ffmpeg-cli
-          key: deps-linux-${{ hashFiles('third_party/setup-deps.sh', 'third_party/build-ffmpeg.sh') }}
+            deps/protobuf3196
+            deps/paho
+            deps/ffmpeg
+            deps/ffmpeg-deps
+            deps/ffmpeg-cli
+            deps/mosquitto
+          key: deps-linux-${{ hashFiles('scripts/deps.lock', 'scripts/deps.sh') }}
 
       - name: Build dependencies
-        run: ./third_party/setup-deps.sh
+        run: ./scripts/deps.sh
 
       - name: Build client + tests
         run: |
@@ -86,6 +87,7 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-nsis
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-qt6-base
             mingw-w64-x86_64-qt6-tools
@@ -94,14 +96,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            third_party/protobuf3196
-            third_party/paho
-            third_party/ffmpeg
-            third_party/ffmpeg-cli
-          key: deps-windows-${{ hashFiles('third_party/setup-deps.sh', 'third_party/build-ffmpeg.sh') }}
+            deps/protobuf3196
+            deps/paho
+            deps/ffmpeg
+            deps/ffmpeg-cli
+          key: deps-windows-${{ hashFiles('scripts/deps.lock', 'scripts/deps.sh') }}
 
       - name: Build dependencies
-        run: ./third_party/setup-deps.sh
+        run: ./scripts/deps.sh
 
       - name: Build client
         run: |
@@ -113,7 +115,7 @@ jobs:
           cmake -S simulator -B simulator/build -G Ninja -DCMAKE_BUILD_TYPE=$BUILD_TYPE
           cmake --build simulator/build
 
-      - name: Package zips
+      - name: Package installers
         run: |
           ./packaging/bundle-windows.sh client/build/rm_client rm_client
           ./packaging/bundle-windows.sh simulator/build/rm_simulator rm_simulator --with-ffmpeg
@@ -121,7 +123,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: rm-windows
-          path: dist/*.zip
+          path: dist/*-setup.exe
           if-no-files-found: error
 
   release:
@@ -154,10 +156,10 @@ jobs:
           V="${{ steps.ver.outputs.version }}"
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then ref="tags/$GITHUB_REF_NAME"; else ref="heads/$GITHUB_REF_NAME"; fi
           msg=$(gh api "repos/$GITHUB_REPOSITORY/commits/$ref" --jq '.commit.message')
-          mv dist/rm_client.AppImage      "dist/rm_client-$V-linux-x86_64.AppImage"
-          mv dist/rm_simulator.AppImage   "dist/rm_simulator-$V-linux-x86_64.AppImage"
-          mv dist/rm_client.zip           "dist/rm_client-$V-windows-x86_64.zip"
-          mv dist/rm_simulator.zip        "dist/rm_simulator-$V-windows-x86_64.zip"
+          mv dist/rm_client.AppImage        "dist/rm_client-$V-linux-x86_64.AppImage"
+          mv dist/rm_simulator.AppImage     "dist/rm_simulator-$V-linux-x86_64.AppImage"
+          mv dist/rm_client-setup.exe       "dist/rm_client-$V-windows-x86_64-setup.exe"
+          mv dist/rm_simulator-setup.exe    "dist/rm_simulator-$V-windows-x86_64-setup.exe"
           gh release create "$V" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             ${{ steps.ver.outputs.target }} \

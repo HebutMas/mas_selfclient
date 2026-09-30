@@ -1,0 +1,79 @@
+name: deps
+
+# Builds and publishes the prebuilt deps bundle consumed by
+# scripts/deps.sh. Run manually after bumping scripts/deps.lock, then paste
+# the printed sha256 + tag back into deps.lock.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish the bundles under (e.g. deps-v1)
+        required: true
+        default: deps-v1
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: deps Linux x86_64
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+      - name: Build dependencies + bundle
+        run: ./scripts/deps.sh --pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deps-linux
+          path: deps/rm-deps-linux-x86_64.tar.gz*
+          if-no-files-found: error
+
+  windows:
+    name: deps Windows x86_64
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git curl tar zip unzip make
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkgconf
+      - name: Build dependencies + bundle
+        run: ./scripts/deps.sh --pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deps-windows
+          path: deps/rm-deps-windows-x86_64.zip*
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          T="${{ inputs.tag }}"
+          gh release create "$T" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$T" \
+            --notes "Prebuilt deps bundle. Versions + hashes: scripts/deps.lock"

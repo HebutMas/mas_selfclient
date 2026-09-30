@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# 本机联调启动器：MQTT Broker(mosquitto, 纯 C) + 自定义模拟器(rm_simulator)。
-# 端口全部可配置，默认 = 本机 dev profile（见 docs/架构设计.md 2.6）。
-# 不依赖 Python：broker 来自 third_party/mosquitto（由 setup-deps.sh 构建）。
-#
 # 用法: ./simulator/run-local-sim.sh        （Ctrl-C 退出）
 # 覆盖: RM_MQTT_HOST=127.0.0.1 RM_MQTT_PORT=1883 ./simulator/run-local-sim.sh
 set -euo pipefail
@@ -10,15 +6,15 @@ set -euo pipefail
 SIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SIM_DIR/.." && pwd)"
 BIN="$SIM_DIR/build/rm_simulator"
-MOSQUITTO="$ROOT/third_party/mosquitto/sbin/mosquitto"
+MOSQUITTO="$ROOT/deps/mosquitto/sbin/mosquitto"
 
-# ---- 可配置端点 ----
+# 可配置端点
 MQTT_HOST="${RM_MQTT_HOST:-127.0.0.1}"
 MQTT_PORT="${RM_MQTT_PORT:-1883}"        # 现场官方为 3333
 ROBOT_ID="${RM_CLIENT_ROBOT_ID:-1}"      # 所连机器人 ID = MQTT clientID
 
 [ -x "$MOSQUITTO" ] || {
-  echo "缺少 mosquitto broker，运行: ./third_party/setup-deps.sh"; exit 1; }
+  echo "缺少 mosquitto broker，运行: ./scripts/deps.sh"; exit 1; }
 
 # mosquitto listener 需要可绑定的地址；localhost 归一化为 127.0.0.1
 BIND_ADDR="$MQTT_HOST"

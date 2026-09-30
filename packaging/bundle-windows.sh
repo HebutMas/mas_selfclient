@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Bundles one rm binary into a self-contained zip (Qt via windeployqt plus the
-# MinGW runtime). Run from an MSYS2 MINGW64 shell.
-#
+
 # Usage: packaging/bundle-windows.sh <exe-path-without-.exe> <output-name> [--with-ffmpeg]
 set -euo pipefail
 
@@ -27,15 +25,30 @@ for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
 done
 
 # Vendored shared deps, if present (static builds don't need them).
-cp "$ROOT"/third_party/protobuf3196/bin/*.dll "$DEST/" 2>/dev/null || true
-cp "$ROOT"/third_party/paho/bin/*.dll "$DEST/" 2>/dev/null || true
+cp "$ROOT"/deps/protobuf3196/bin/*.dll "$DEST/" 2>/dev/null || true
+cp "$ROOT"/deps/paho/bin/*.dll "$DEST/" 2>/dev/null || true
 
 # Optional: bundled static ffmpeg CLI for the simulator's video import.
 if [ "$WITH_FFMPEG" = "--with-ffmpeg" ]; then
-  FF="$ROOT/third_party/ffmpeg-cli/bin/ffmpeg.exe"
-  [ -e "$FF" ] || { echo "missing $FF (run third_party/setup-deps.sh)" >&2; exit 1; }
+  FF="$ROOT/deps/ffmpeg-cli/bin/ffmpeg.exe"
+  [ -e "$FF" ] || { echo "missing $FF (run scripts/deps.sh)" >&2; exit 1; }
   cp "$FF" "$DEST/"
 fi
 
-( cd "$ROOT/dist" && rm -f "$NAME.zip" && zip -qr "$NAME.zip" "$NAME" )
-echo "==> $ROOT/dist/$NAME.zip"
+# Pack the staged folder into one installer .exe.
+case "$NAME" in
+  rm_client)    DISPLAY_NAME="RM Custom Client" ;;
+  rm_simulator) DISPLAY_NAME="RM Simulator" ;;
+  *)            DISPLAY_NAME="$NAME" ;;
+esac
+if [ "${GITHUB_REF_TYPE:-}" = tag ]; then VERSION="$GITHUB_REF_NAME"; else VERSION="v0.1.${GITHUB_RUN_NUMBER:-0}"; fi
+
+MAKENSIS="$(command -v makensis || true)"
+[ -n "$MAKENSIS" ] || { echo "missing makensis (pacman -S mingw-w64-x86_64-nsis)" >&2; exit 1; }
+
+OUT="$ROOT/dist/$NAME-setup.exe"
+"$MAKENSIS" -V2 \
+  -D"APP_NAME=$DISPLAY_NAME" -D"APP_EXE=$NAME.exe" -D"APP_VERSION=$VERSION" \
+  -D"SRCDIR=$(cygpath -w "$DEST")" -D"OUTFILE=$(cygpath -w "$OUT")" \
+  "$ROOT/packaging/windows-installer.nsi"
+echo "==> $OUT"

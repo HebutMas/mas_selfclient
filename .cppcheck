@@ -2,7 +2,7 @@
 #   cppcheck --project=client/build/compile_commands.json \
 #            --enable=warning,style,performance,portability \
 #            --inline-suppr --suppressions-list=.cppcheck \
-#            -i third_party -i reference -i client/build -i simulator/build
+#            -i deps -i reference -i client/build -i simulator/build
 # 注意：需要先让 CMake 导出编译数据库（-DCMAKE_EXPORT_COMPILE_COMMANDS=ON，本项目默认开启）。
 
 # 依赖缺失类：不追头文件，避免第三方/系统头噪声
@@ -14,8 +14,8 @@ unknownMacro
 constParameter
 unusedStructMember
 
-# 编译数据库会带入 third_party 头与 build/ 下的 moc 生成物，跳过
-syntaxError:third_party/*
+# 编译数据库会带入 deps 头与 build/ 下的 moc 生成物，跳过
+syntaxError:deps/*
 preprocessorErrorDirective:client/build/*
 preprocessorErrorDirective:simulator/build/*
 

@@ -6,7 +6,7 @@ selfcontrol/
 ├─ cmake/RmDeps.cmake       # 共享的依赖解析 + proto/paho 集成
 ├─ client/                  # 自定义客户端（Qt6 Widgets）→ rm_client
 ├─ simulator/               # 裁判系统模拟器（Qt6 Core）→ rm_simulator
-├─ third_party/             # 第三方依赖
+├─ scripts/deps.sh           # 第三方依赖：默认下载预编译包到 deps/，--pack 从源码出包
 ```
 
 ## 环境要求
@@ -24,8 +24,24 @@ selfcontrol/
 ### 1. 准备依赖（首次）
 
 ```bash
-./third_party/setup-deps.sh
+./scripts/deps.sh
 ```
+
+依赖版本（protobuf / paho / mosquitto / ffmpeg / ffnvcodec / ffmpeg CLI）全部锁在
+`scripts/deps.lock`，这是唯一真相源。默认路径从该仓库的 `deps-vN` Release 下载一个
+校验过 sha256 的预编译包并解压到 `deps/`（不访问第三方源、不需要工具链）。
+若 `deps.lock` 里还没配包、或包取不到，会自动退回 `./scripts/deps.sh --pack` 按锁定的源码从零
+构建（慢，需要外网 + 工具链）；sha256 对不上则直接失败，不会悄悄重建。
+`RM_DEPS_BUNDLE_URL=<url>` 指向内网镜像。
+
+维护者升级依赖后重新发包（需要工具链，会访问多个第三方站点）：
+
+```bash
+./scripts/deps.sh --pack             # 按 deps.lock 源码构建 + 打包 rm-deps-<platform>-x86_64.* 及 sha256
+```
+
+再把 `deps.lock` 里的 `DEPS_BUNDLE_TAG` 和 `DEPS_BUNDLE_SHA256_*` 填上。CI 里由
+`.github/workflows/deps.yml`（手动触发）在 ubuntu-22.04 + windows-latest 上产包并发布。
 
 ### 2. 构建客户端
 
@@ -50,17 +66,17 @@ cmake --build simulator/build
 | Job | 运行器 | 产物 |
 |---|---|---|
 | Linux x86_64 | ubuntu-22.04 + Qt 6.11.2 | `rm_client.AppImage` / `rm_simulator.AppImage` |
-| Windows x86_64 | windows-latest + MSYS2/MinGW-w64 + Qt6 | `rm_client.zip` / `rm_simulator.zip` |
+| Windows x86_64 | windows-latest + MSYS2/MinGW-w64 + Qt6 | `rm_client-setup.exe` / `rm_simulator-setup.exe`（NSIS 安装包） |
 
-依赖（protobuf / paho / ffmpeg）由 `third_party/setup-deps.sh` 从源码构建，CI 按脚本哈希缓存。AppImage 由 `packaging/linux-appimage.sh`（linuxdeploy + Qt 插件）打包；Windows zip 由 `packaging/bundle-windows.sh`（`windeployqt` + MinGW 运行时）打包。
+依赖（protobuf / paho / mosquitto / ffmpeg）由 `scripts/deps.sh` 准备：默认从本仓库 Release 下载 `scripts/deps.lock` 里锁定的预编译包并校验 sha256，取不到时按同一份锁从源码构建；CI 按 `deps.lock` + 脚本哈希缓存 `deps/`。AppImage 由 `packaging/linux-appimage.sh`（linuxdeploy + Qt 插件）打包；Windows 安装包由 `packaging/bundle-windows.sh`（`windeployqt` + MinGW 运行时暂存出一个自包含目录）再用 `packaging/windows-installer.nsi`（NSIS）打成单个安装 exe。
 
 两个平台构建成功后，`release` job 自动创建 GitHub Release 并附带全部产物：
 - **push tag（`v*`）**：版本号取 tag 名，如 `v1.0.0`；
 - **push `main`/`master`**：自动版本号 `v0.1.<run_number>`（构建号单调递增）。
 
-产物按 `rm_client-<version>-linux-x86_64.AppImage` 之类命名。PR 只构建、不发布；`workflow_dispatch` 只上传 Artifact。
+产物按 `rm_client-<version>-linux-x86_64.AppImage` / `rm_client-<version>-windows-x86_64-setup.exe` 命名。PR 只构建、不发布；`workflow_dispatch` 只上传 Artifact。
 
-> 模拟器的「导入视频」功能在运行时调用外部 `ffmpeg` 命令（把本地视频转成 HEVC）。该 CLI **已随独立包附带**（由 `setup-deps.sh` 下载 BtbN 预编译静态 GPL 构建，含 libx265），运行时优先使用程序同目录下的 `ffmpeg`，找不到时回退到系统 `PATH`。
+> 模拟器的「导入视频」功能在运行时调用外部 `ffmpeg` 命令（把本地视频转成 HEVC）。该 CLI **已随独立包附带**（`scripts/deps.sh --pack` 打包时并入 BtbN 预编译静态 GPL 构建，含 libx265），运行时优先使用程序同目录下的 `ffmpeg`，找不到时回退到系统 `PATH`。
 
 ---
 
@@ -114,7 +130,7 @@ clang-tidy -p client/build client/src/**/*.cpp
 cppcheck --project=client/build/compile_commands.json \
          --enable=warning,style,performance,portability \
          --inline-suppr --suppressions-list=.cppcheck \
-         -i third_party -i reference -i client/build -i simulator/build
+         -i deps -i reference -i client/build -i simulator/build
 ```
 
 
