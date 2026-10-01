@@ -19,9 +19,15 @@ WINDEPLOYQT="$(command -v windeployqt-qt6 || command -v windeployqt6 || command 
 "$WINDEPLOYQT" --release --no-translations --no-system-d3d-compiler --no-opengl-sw \
   "$DEST/$NAME.exe"
 
-# MinGW runtime (windeployqt only handles MSVC's runtime).
-for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
-  [ -e "$MINGW_PREFIX/bin/$dll" ] && cp "$MINGW_PREFIX/bin/$dll" "$DEST/"
+# windeployqt 在 MSYS2 上只带 Qt 自己的 DLL，Qt 的非 Qt 依赖（freetype、harfbuzz、
+# glib、md4c、brotli…）会漏，而这些 DLL 又各有依赖。用 objdump 列出暂存目录里所有
+# PE 的导入表，把能在 $MINGW_PREFIX/bin 找到的都补进来，直到数量不再增长。
+while :; do
+  before=$(find "$DEST" -mindepth 1 | wc -l)
+  find "$DEST" -type f \( -name '*.exe' -o -name '*.dll' \) -exec objdump -p {} + 2>/dev/null \
+    | awk '/DLL Name:/ {print $3}' | sort -u \
+    | while read -r dll; do cp -n "$MINGW_PREFIX/bin/$dll" "$DEST/" 2>/dev/null || true; done
+  [ "$before" = "$(find "$DEST" -mindepth 1 | wc -l)" ] && break
 done
 
 # Vendored shared deps, if present (static builds don't need them).
